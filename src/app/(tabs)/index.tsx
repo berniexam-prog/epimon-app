@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -13,18 +13,58 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { color, fontFamily, typography } from "../../theme";
 import { Button, Card, Chip, Moon, ProgressBar } from "../../ui";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { name, dailyGoalMinutes } = useOnboardingStore();
-  const { startSession, customBlocks, removeCustomBlock } = useFocusStore();
+  const { startSession, customBlocks, removeCustomBlock, recentSessions } =
+    useFocusStore();
 
-  const [selectedDay, setSelectedDay] = useState(3); // Thursday default
+  // Highlight today's exact current day of the week
+  const todayIndex = new Date().getDay();
+  const [selectedDay, setSelectedDay] = useState(todayIndex);
 
   const greeting = name ? `Good morning, ${name}` : "Good morning";
   const targetMinutes = dailyGoalMinutes || 15;
-  const moonFill = 0.0;
+
+  // Calculate dynamic current active day count (Day 1, Day 2, Day 3, ...)
+  const activeDayCount = useMemo(() => {
+    if (recentSessions.length === 0) return 1;
+
+    // Extract unique calendar days from session timestamps
+    const uniqueDays = new Set(
+      recentSessions
+        .filter((s) => s.endedAt)
+        .map((s) => {
+          const date = new Date(s.endedAt!);
+          return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        }),
+    );
+
+    // If no sessions ended yet, default to Day 1
+    return Math.max(1, uniqueDays.size + (uniqueDays.size === 0 ? 1 : 0));
+  }, [recentSessions]);
+
+  // Calculate actual total seconds focused today across all completed sessions
+  const todayFocusedMinutes = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayTimestamp = startOfToday.getTime();
+
+    const todaySec = recentSessions
+      .filter((s) => s.endedAt && s.endedAt >= todayTimestamp)
+      .reduce((sum, s) => sum + (s.focusedSec || 0), 0);
+
+    return Math.round(todaySec / 60);
+  }, [recentSessions]);
+
+  // Calculate dynamic moon charge ratio (0.0 to 1.0)
+  const moonFill = Math.min(
+    1,
+    Math.max(0, todayFocusedMinutes / targetMinutes),
+  );
+  const remainingMinutes = Math.max(0, targetMinutes - todayFocusedMinutes);
 
   const handleStartSession = () => {
     startSession("Starter focus", targetMinutes);
@@ -41,11 +81,8 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.kicker}>Home</Text>
-          <Text style={styles.title}>{greeting}</Text>
-        </View>
-        <Chip label="Day 1" active />
+        <Text style={styles.title}>{greeting}</Text>
+        <Chip label={`Day ${activeDayCount}`} active />
       </View>
 
       <Card style={styles.heroCard}>
@@ -56,7 +93,9 @@ export default function HomeScreen() {
               Moon is {Math.round(moonFill * 100)}% lit
             </Text>
             <Text style={styles.moonHint}>
-              {targetMinutes} minutes planned for today
+              {remainingMinutes > 0
+                ? `${remainingMinutes} of ${targetMinutes} minutes left for today`
+                : "Daily focus goal accomplished!"}
             </Text>
             <ProgressBar value={moonFill} />
           </View>
@@ -67,14 +106,22 @@ export default function HomeScreen() {
       <View style={styles.weekRow}>
         {WEEKDAYS.map((day, index) => {
           const isSelected = selectedDay === index;
+          const isToday = todayIndex === index;
           return (
             <TouchableOpacity
               key={day}
               activeOpacity={0.8}
               onPress={() => setSelectedDay(index)}
-              style={[styles.dayCell, isSelected && styles.dayCellActive]}
+              style={[
+                styles.dayCell,
+                isSelected && styles.dayCellActive,
+                isToday && !isSelected && styles.dayCellToday,
+              ]}
             >
-              <Moon size={28} fill={isSelected ? 0.3 : 0.05} />
+              <Moon
+                size={28}
+                fill={isSelected ? Math.max(0.2, moonFill) : 0.05}
+              />
               <Text
                 style={[styles.dayLabel, isSelected && styles.dayLabelActive]}
               >
@@ -89,10 +136,10 @@ export default function HomeScreen() {
       <Card style={styles.planCard}>
         <Text style={styles.planTitle}>Starter focus</Text>
         <Text style={styles.planMeta}>
-          9:00 AM • {targetMinutes} min • Today
+          Next session • {targetMinutes} min • Today
         </Text>
         <Button
-          label="Start first block"
+          label="Start focus block"
           variant="moon"
           fullWidth={false}
           style={styles.startButton}
@@ -100,7 +147,7 @@ export default function HomeScreen() {
         />
       </Card>
 
-      {/* Synchronized Custom Inbox Tasks from Plan Section */}
+      {/* Synchronized Custom Plan Tasks from Plan Section */}
       {customBlocks.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Your Schedule Tasks</Text>
@@ -135,20 +182,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
-  },
-  kicker: {
-    color: color.mist,
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: typography.sm,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
+    marginBottom: 22,
+    gap: 16,
   },
   title: {
     color: color.text,
     fontFamily: fontFamily.heading,
     fontSize: typography.xxl,
-    marginTop: 4,
+    flex: 1,
   },
   heroCard: { padding: 20, marginBottom: 18 },
   moonRow: { flexDirection: "row", alignItems: "center", gap: 16 },
@@ -187,6 +228,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: color.moon,
   },
+  dayCellToday: { borderWidth: 1, borderColor: color.line },
   dayLabel: {
     marginTop: 6,
     color: color.mist,
