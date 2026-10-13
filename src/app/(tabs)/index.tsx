@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useOnboardingStore } from '../../stores/onboarding';
 import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip, Moon, ProgressBar } from '../../ui';
@@ -9,8 +10,13 @@ export default function HomeScreen() {
   const { name, dailyGoalMinutes } = useOnboardingStore();
 
   const greeting = name ? `Good morning, ${name}` : 'Good morning';
-  const moonFill = 0.72;
-  const minutesLeft = Math.round((1 - moonFill) * (dailyGoalMinutes || 15));
+  const targetMinutes = dailyGoalMinutes || 15;
+  const moonFill = 0.0; // Fresh new user state: 0% lit
+  const minutesLeft = targetMinutes;
+
+  const handleStartSession = () => {
+    router.push('/focus/session');
+  };
 
   return (
     <ScrollView
@@ -26,7 +32,7 @@ export default function HomeScreen() {
           <Text style={styles.kicker}>Home</Text>
           <Text style={styles.title}>{greeting}</Text>
         </View>
-        <Chip label="12 day streak" active />
+        <Chip label="Day 1" />
       </View>
 
       <Card style={styles.heroCard}>
@@ -37,7 +43,7 @@ export default function HomeScreen() {
               Moon is {Math.round(moonFill * 100)}% lit
             </Text>
             <Text style={styles.moonHint}>
-              {minutesLeft} of {dailyGoalMinutes || 15} minutes left for today
+              {minutesLeft} of {targetMinutes} minutes left for today
             </Text>
             <ProgressBar value={moonFill} />
           </View>
@@ -49,9 +55,9 @@ export default function HomeScreen() {
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
           <View
             key={day}
-            style={[styles.dayCell, index === 3 && styles.dayCellActive]}
+            style={[styles.dayCell, index === 0 && styles.dayCellActive]}
           >
-            <Moon size={28} fill={index === 3 ? 1 : index < 3 ? 0.5 : 0.15} />
+            <Moon size={28} fill={index === 0 ? 0.1 : 0.05} />
             <Text style={styles.dayLabel}>{day}</Text>
           </View>
         ))}
@@ -60,12 +66,13 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Next up</Text>
       <Card style={styles.planCard}>
         <Text style={styles.planTitle}>Starter focus</Text>
-        <Text style={styles.planMeta}>9:00 • {dailyGoalMinutes || 15} min • Today</Text>
+        <Text style={styles.planMeta}>9:00 AM • {targetMinutes} min • Today</Text>
         <Button
-          label="Start"
+          label="Start first block"
           variant="moon"
           fullWidth={false}
           style={styles.startButton}
+          onPress={handleStartSession}
         />
       </Card>
     </ScrollView>

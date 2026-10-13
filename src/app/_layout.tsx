@@ -48,14 +48,18 @@ export default function RootLayout() {
 
     const isOnboardingRoute = segments[0] === '(onboarding)';
     const isTabsRoute = segments[0] === '(tabs)';
+    const isFocusRoute = segments[0] === 'focus';
 
+    // If onboarding is NOT completed, but we are not on an onboarding route -> go to welcome
     if (!onboardingCompletedAt && !isOnboardingRoute) {
       router.replace('/(onboarding)/welcome');
       return;
     }
 
-    if (onboardingCompletedAt && !isTabsRoute && segments[0] !== 'focus') {
-      router.replace('/');
+    // If onboarding IS completed, but we are still stuck on an onboarding route -> go to tabs home
+    if (onboardingCompletedAt && isOnboardingRoute) {
+      router.replace('/(tabs)');
+      return;
     }
   }, [hasHydrated, onboardingCompletedAt, segments]);
 

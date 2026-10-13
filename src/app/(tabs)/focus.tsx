@@ -1,21 +1,34 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusStore } from '../../stores/focus';
+import { useOnboardingStore } from '../../stores/onboarding';
 import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip, Moon, ProgressRing } from '../../ui';
 
 export default function FocusScreen() {
+  const insets = useSafeAreaInsets();
   const startSession = useFocusStore((state) => state.startSession);
+  const { dailyGoalMinutes } = useOnboardingStore();
+  
+  const targetMinutes = dailyGoalMinutes || 15;
 
   const handleStart = () => {
-    startSession('Starter focus', 25);
+    startSession('Starter focus', targetMinutes);
     router.push('/focus/session');
   };
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.kicker}>Focus</Text>
-      <Text style={styles.title}>This block adds 25 minutes</Text>
+      <Text style={styles.title}>This block adds {targetMinutes} minutes</Text>
 
       <Card style={styles.previewCard}>
         <View style={styles.previewRow}>
@@ -31,10 +44,14 @@ export default function FocusScreen() {
       </Card>
 
       <View style={styles.actions}>
-        <Button label="Start 25 min" variant="moon" onPress={handleStart} />
+        <Button
+          label={`Start ${targetMinutes} min`}
+          variant="moon"
+          onPress={handleStart}
+        />
         <Button label="Use a different block" variant="secondary" />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -42,9 +59,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: color.night,
+  },
+  contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 24,
   },
   kicker: {
     color: color.mist,

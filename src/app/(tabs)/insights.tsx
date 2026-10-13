@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { companionService } from '../../services/companion';
 import { useFocusStore } from '../../stores/focus';
 import { useOnboardingStore } from '../../stores/onboarding';
@@ -7,6 +8,7 @@ import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip } from '../../ui';
 
 export default function InsightsScreen() {
+  const insets = useSafeAreaInsets();
   const { recentSessions } = useFocusStore();
   const { name, bestTime } = useOnboardingStore();
   const activeFilter = 'This week';
@@ -39,8 +41,17 @@ export default function InsightsScreen() {
     setCoachMessage(nextMessage);
   };
 
+  const totalWeeklyMinutes = summary.minutesPerDay.reduce((sum, item) => sum + item, 0);
+
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.kicker}>Insights</Text>
       <Text style={styles.title}>Your coach</Text>
 
@@ -50,7 +61,11 @@ export default function InsightsScreen() {
             key={option}
             label={option}
             active={activeFilter === option}
-            trailing={option === 'This week' ? <Text style={styles.miniPill}>{summary.minutesPerDay.reduce((sum, item) => sum + item, 0)}m</Text> : undefined}
+            trailing={
+              option === 'This week' ? (
+                <Text style={styles.miniPill}>{totalWeeklyMinutes}m</Text>
+              ) : undefined
+            }
           />
         ))}
       </View>
@@ -74,7 +89,9 @@ export default function InsightsScreen() {
           <Text style={styles.bubbleText}>{coachMessage}</Text>
         </View>
         <View style={styles.bubbleUser}>
-          <Text style={styles.bubbleTextUser}>I&apos;m trying to protect my best window around {bestTime || 'morning'}.</Text>
+          <Text style={styles.bubbleTextUser}>
+            I&apos;m trying to protect my best window around {bestTime || 'morning'}.
+          </Text>
         </View>
       </Card>
 
@@ -89,7 +106,10 @@ export default function InsightsScreen() {
                     styles.barFill,
                     {
                       height: `${bar.height}%`,
-                      backgroundColor: bar.value >= Math.max(...summary.minutesPerDay) * 0.7 ? color.moon : color.violet,
+                      backgroundColor:
+                        bar.value >= Math.max(...summary.minutesPerDay) * 0.7 && bar.value > 0
+                          ? color.moon
+                          : color.violet,
                     },
                   ]}
                 />
@@ -98,9 +118,11 @@ export default function InsightsScreen() {
             </View>
           ))}
         </View>
-        <Text style={styles.cardTextSmall}>{name ? `${name},` : 'You'} are strongest around {summary.bestFocusWindow}. Keep the first block at that time.</Text>
+        <Text style={styles.cardTextSmall}>
+          {name ? `${name},` : 'You'} are strongest around {summary.bestFocusWindow}. Keep the first block at that time.
+        </Text>
       </Card>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -108,9 +130,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: color.night,
+  },
+  contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 24,
   },
   kicker: {
     color: color.mist,

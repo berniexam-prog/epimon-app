@@ -1,10 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useOnboardingStore } from '../../stores/onboarding';
 import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip, Timeline } from '../../ui';
 
 export default function PlanScreen() {
+  const insets = useSafeAreaInsets();
+  const { dailyGoalMinutes } = useOnboardingStore();
+  const targetMinutes = dailyGoalMinutes || 15;
+
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.headerRow}>
         <Text style={styles.title}>Plan</Text>
         <Chip label="Week" active />
@@ -12,9 +25,18 @@ export default function PlanScreen() {
 
       <View style={styles.dateRow}>
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-          <View key={day} style={[styles.dateCell, index === 2 && styles.dateCellActive]}>
-            <Text style={[styles.dateDay, index === 2 && styles.dateDayActive]}>{day}</Text>
-            <Text style={[styles.dateNumber, index === 2 && styles.dateNumberActive]}>{index + 8}</Text>
+          <View
+            key={day}
+            style={[styles.dateCell, index === 0 && styles.dateCellActive]}
+          >
+            <Text style={[styles.dateDay, index === 0 && styles.dateDayActive]}>
+              {day}
+            </Text>
+            <Text
+              style={[styles.dateNumber, index === 0 && styles.dateNumberActive]}
+            >
+              {index + 1}
+            </Text>
           </View>
         ))}
       </View>
@@ -23,9 +45,31 @@ export default function PlanScreen() {
         <Text style={styles.timelineTitle}>Today</Text>
         <Timeline
           blocks={[
-            { id: 'a', label: 'Pick one thing', start: 9, duration: 10, kind: 'plan', timeLabel: '9:00' },
-            { id: 'b', label: 'Starter focus', start: 9, duration: 20, kind: 'focus', glow: 15, timeLabel: '9:10' },
-            { id: 'c', label: 'Walk with Epi', start: 9, duration: 10, kind: 'rest', timeLabel: '9:30' },
+            {
+              id: 'a',
+              label: 'Pick one thing',
+              start: 9,
+              duration: 10,
+              kind: 'plan',
+              timeLabel: '9:00',
+            },
+            {
+              id: 'b',
+              label: 'Starter focus',
+              start: 9,
+              duration: targetMinutes,
+              kind: 'focus',
+              glow: targetMinutes,
+              timeLabel: '9:10',
+            },
+            {
+              id: 'c',
+              label: 'Walk with Epi',
+              start: 9,
+              duration: 10,
+              kind: 'rest',
+              timeLabel: `9:${10 + targetMinutes}`,
+            },
           ]}
         />
       </Card>
@@ -34,7 +78,7 @@ export default function PlanScreen() {
         <Button label="Inbox" variant="secondary" fullWidth={false} />
         <Button label="Plan with Epi" variant="moon" fullWidth={false} />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -42,9 +86,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: color.night,
+  },
+  contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 24,
   },
   headerRow: {
     flexDirection: 'row',
