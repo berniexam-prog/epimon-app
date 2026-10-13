@@ -27,6 +27,14 @@ export default function FocusSessionScreen() {
   const remainingSec = Math.ceil(remainingMs / 1000);
   const progress = Math.min(1, elapsedMs / totalMs);
 
+  // Safely format remaining seconds into a clean MM:SS layout
+  const formatTime = (totalSeconds: number) => {
+    const safeSec = Math.max(0, Math.floor(isNaN(totalSeconds) ? 0 : totalSeconds));
+    const mins = Math.floor(safeSec / 60);
+    const secs = safeSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (!activeSession) return;
     if (remainingSec <= 0) {
@@ -72,8 +80,13 @@ export default function FocusSessionScreen() {
         </ProgressRing>
       </View>
 
-      <Text style={styles.time}>{Math.max(0, remainingSec)}s</Text>
-      <Text style={styles.helper}>{activeSession.leftAt ? 'Clouds are covering the moon.' : 'Moon charging • stay in the foreground.'}</Text>
+      {/* Fixed: MM:SS formatting with safe font sizing preventing expansion bugs */}
+      <Text style={styles.time} numberOfLines={1} adjustsFontSizeToFit>
+        {formatTime(remainingSec)}
+      </Text>
+      <Text style={styles.helper}>
+        {activeSession.leftAt ? 'Clouds are covering the moon.' : 'Moon charging • stay in the foreground.'}
+      </Text>
 
       <View style={styles.actions}>
         <Button
@@ -134,8 +147,10 @@ const styles = StyleSheet.create({
   time: {
     color: color.moon,
     fontFamily: fontFamily.heading,
-    fontSize: typography.display,
-    lineHeight: 64,
+    fontSize: 48, // Safe explicit font size preventing layout bugs
+    lineHeight: 56,
+    letterSpacing: 1.5,
+    textAlign: 'center',
   },
   helper: {
     color: color.mist,

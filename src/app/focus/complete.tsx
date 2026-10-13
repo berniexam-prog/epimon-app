@@ -17,6 +17,9 @@ export default function FocusCompleteScreen() {
   }
 
   const fullMoon = lastCompletedSession.focusedSec >= lastCompletedSession.plannedMin * 60;
+  
+  // FIXED: Safely round or calculate focused minutes as a clean integer to prevent decimal text expansion bugs
+  const focusedMinutes = Math.max(1, Math.round(lastCompletedSession.focusedSec / 60));
 
   return (
     <View style={styles.screen}>
@@ -24,7 +27,11 @@ export default function FocusCompleteScreen() {
       <Moon size={120} fill={fullMoon ? 1 : 0.5} />
       <Text style={styles.title}>{fullMoon ? 'Full moon.' : 'Moon charged.'}</Text>
       <Text style={styles.subtitle}>{lastCompletedSession.title}</Text>
-      <Text style={styles.value}>{lastCompletedSession.focusedSec / 60} min</Text>
+      
+      {/* FIXED: Uses rounded focusedMinutes and explicit safe styling instead of broken decimals */}
+      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+        {focusedMinutes} min
+      </Text>
 
       <View style={styles.chips}>
         <Chip label={fullMoon ? 'Goal complete' : 'On track'} active={fullMoon} />
@@ -68,8 +75,10 @@ const styles = StyleSheet.create({
   value: {
     color: color.moon,
     fontFamily: fontFamily.heading,
-    fontSize: typography.display,
-    lineHeight: 64,
+    fontSize: 48, // FIXED: Explicit safe size instead of broken typography.display stretching
+    lineHeight: 56,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   chips: {
     flexDirection: 'row',
