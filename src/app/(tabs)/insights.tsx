@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { companionService } from '../../services/companion';
 import { useFocusStore } from '../../stores/focus';
@@ -10,8 +10,9 @@ import { Button, Card, Chip } from '../../ui';
 export default function InsightsScreen() {
   const insets = useSafeAreaInsets();
   const { recentSessions } = useFocusStore();
-  const { name, bestTime } = useOnboardingStore();
-  const activeFilter = 'This week';
+  const { name, bestTime, obstacle } = useOnboardingStore();
+  
+  const [activeFilter, setActiveFilter] = useState('This week');
 
   const sessions = useMemo(
     () =>
@@ -36,6 +37,18 @@ export default function InsightsScreen() {
 
   const [coachMessage, setCoachMessage] = useState(plan.reply);
 
+  // Dynamic filter handler for production readiness
+  const handleFilterSelect = (option: string) => {
+    setActiveFilter(option);
+    if (option === 'Why I stall') {
+      setCoachMessage(`Epi notes: Your main obstacle is ${obstacle || 'procrastination'}. Let's shrink your first block down to 5 minutes to bypass resistance.`);
+    } else if (option === 'Plan Monday') {
+      setCoachMessage(`Epi notes: Monday is locked in for your ${bestTime || 'morning'} window. Keep your phone out of reach.`);
+    } else {
+      setCoachMessage(plan.reply);
+    }
+  };
+
   const updateCoachFromAction = (action: string) => {
     const nextMessage = companionService.reply(action, sessions);
     setCoachMessage(nextMessage);
@@ -57,22 +70,29 @@ export default function InsightsScreen() {
 
       <View style={styles.chipRow}>
         {['This week', 'Why I stall', 'Plan Monday'].map((option) => (
-          <Chip
-            key={option}
-            label={option}
-            active={activeFilter === option}
-            trailing={
-              option === 'This week' ? (
-                <Text style={styles.miniPill}>{totalWeeklyMinutes}m</Text>
-              ) : undefined
-            }
-          />
+          <TouchableOpacity key={option} activeOpacity={0.8} onPress={() => handleFilterSelect(option)}>
+            <Chip
+              label={option}
+              active={activeFilter === option}
+              trailing={
+                option === 'This week' ? (
+                  <Text style={styles.miniPill}>{totalWeeklyMinutes}m</Text>
+                ) : undefined
+              }
+            />
+          </TouchableOpacity>
         ))}
       </View>
 
       <Card style={styles.card}>
         <Text style={styles.cardTitle}>Epi says</Text>
-        <Text style={styles.cardText}>{plan.body}</Text>
+        <Text style={styles.cardText}>
+          {activeFilter === 'Why I stall'
+            ? 'Action is the cure to anxiety. When you delay, your brain magnifies the task.'
+            : activeFilter === 'Plan Monday'
+            ? 'Your week is structured around micro-wins. Consistency beats intensity every single time.'
+            : plan.body}
+        </Text>
         <View style={styles.actionGroup}>
           <Button
             label={plan.action}
