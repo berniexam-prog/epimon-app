@@ -1,5 +1,7 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useOnboardingStore } from '../../stores/onboarding';
 import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip, Timeline } from '../../ui';
@@ -8,6 +10,16 @@ export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const { dailyGoalMinutes } = useOnboardingStore();
   const targetMinutes = dailyGoalMinutes || 15;
+
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0); // Day 1 selected by default
+
+  const handleInboxPress = () => {
+    Alert.alert('Inbox', 'Your focus queue is empty. Ready for today blocks!');
+  };
+
+  const handlePlanWithEpi = () => {
+    router.push('/(tabs)/insights');
+  };
 
   return (
     <ScrollView
@@ -24,25 +36,30 @@ export default function PlanScreen() {
       </View>
 
       <View style={styles.dateRow}>
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-          <View
-            key={day}
-            style={[styles.dateCell, index === 0 && styles.dateCellActive]}
-          >
-            <Text style={[styles.dateDay, index === 0 && styles.dateDayActive]}>
-              {day}
-            </Text>
-            <Text
-              style={[styles.dateNumber, index === 0 && styles.dateNumberActive]}
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+          const isActive = selectedDateIndex === index;
+          return (
+            <TouchableOpacity
+              key={day}
+              activeOpacity={0.8}
+              onPress={() => setSelectedDateIndex(index)}
+              style={[styles.dateCell, isActive && styles.dateCellActive]}
             >
-              {index + 1}
-            </Text>
-          </View>
-        ))}
+              <Text style={[styles.dateDay, isActive && styles.dateDayActive]}>
+                {day}
+              </Text>
+              <Text style={[styles.dateNumber, isActive && styles.dateNumberActive]}>
+                {index + 1}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Card style={styles.timelineCard}>
-        <Text style={styles.timelineTitle}>Today</Text>
+        <Text style={styles.timelineTitle}>
+          {selectedDateIndex === 0 ? 'Today' : `Day ${selectedDateIndex + 1} Preview`}
+        </Text>
         <Timeline
           blocks={[
             {
@@ -75,8 +92,18 @@ export default function PlanScreen() {
       </Card>
 
       <View style={styles.footerRow}>
-        <Button label="Inbox" variant="secondary" fullWidth={false} />
-        <Button label="Plan with Epi" variant="moon" fullWidth={false} />
+        <Button
+          label="Inbox"
+          variant="secondary"
+          fullWidth={false}
+          onPress={handleInboxPress}
+        />
+        <Button
+          label="Plan with Epi"
+          variant="moon"
+          fullWidth={false}
+          onPress={handlePlanWithEpi}
+        />
       </View>
     </ScrollView>
   );
