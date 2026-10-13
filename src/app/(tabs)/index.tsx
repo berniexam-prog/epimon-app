@@ -1,34 +1,34 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { useOnboardingStore } from '../../stores/onboarding';
-import { useFocusStore } from '../../stores/focus';
-import { color, fontFamily, typography } from '../../theme';
-import { Button, Card, Chip, Moon, ProgressBar } from '../../ui';
+import { router } from "expo-router";
+import { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusStore } from "../../stores/focus";
+import { useOnboardingStore } from "../../stores/onboarding";
+import { color, fontFamily, typography } from "../../theme";
+import { Button, Card, Chip, Moon, ProgressBar } from "../../ui";
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { name, dailyGoalMinutes } = useOnboardingStore();
-  const startSession = useFocusStore((state) => state.startSession);
+  const { startSession, customBlocks, removeCustomBlock } = useFocusStore();
 
-  const [selectedDay, setSelectedDay] = useState(3); // Default to Thursday (index 3)
+  const [selectedDay, setSelectedDay] = useState(3); // Thursday default
 
-  const greeting = name ? `Good morning, ${name}` : 'Good morning';
+  const greeting = name ? `Good morning, ${name}` : "Good morning";
   const targetMinutes = dailyGoalMinutes || 15;
-  const moonFill = 0.0; // Brand new user starting at 0%
-  const minutesLeft = targetMinutes;
+  const moonFill = 0.0;
 
   const handleStartSession = () => {
-    startSession('Starter focus', targetMinutes);
-    router.push('/focus/session');
-  };
-
-  const handleDayPress = (dayName: string, index: number) => {
-    setSelectedDay(index);
-    // Optional helper or logging for production
+    startSession("Starter focus", targetMinutes);
+    router.push("/focus/session");
   };
 
   return (
@@ -56,7 +56,7 @@ export default function HomeScreen() {
               Moon is {Math.round(moonFill * 100)}% lit
             </Text>
             <Text style={styles.moonHint}>
-              {minutesLeft} of {targetMinutes} minutes left for today
+              {targetMinutes} minutes planned for today
             </Text>
             <ProgressBar value={moonFill} />
           </View>
@@ -71,11 +71,13 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={day}
               activeOpacity={0.8}
-              onPress={() => handleDayPress(day, index)}
+              onPress={() => setSelectedDay(index)}
               style={[styles.dayCell, isSelected && styles.dayCellActive]}
             >
               <Moon size={28} fill={isSelected ? 0.3 : 0.05} />
-              <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>
+              <Text
+                style={[styles.dayLabel, isSelected && styles.dayLabelActive]}
+              >
                 {day}
               </Text>
             </TouchableOpacity>
@@ -86,7 +88,9 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Next up</Text>
       <Card style={styles.planCard}>
         <Text style={styles.planTitle}>Starter focus</Text>
-        <Text style={styles.planMeta}>9:00 AM • {targetMinutes} min • Today</Text>
+        <Text style={styles.planMeta}>
+          9:00 AM • {targetMinutes} min • Today
+        </Text>
         <Button
           label="Start first block"
           variant="moon"
@@ -95,22 +99,42 @@ export default function HomeScreen() {
           onPress={handleStartSession}
         />
       </Card>
+
+      {/* Synchronized Custom Inbox Tasks from Plan Section */}
+      {customBlocks.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Your Schedule Tasks</Text>
+          {customBlocks.map((task) => (
+            <Card key={task.id} style={styles.customTaskCard}>
+              <View style={styles.taskHeaderRow}>
+                <Text style={styles.taskTitle}>{task.label}</Text>
+                <TouchableOpacity onPress={() => removeCustomBlock(task.id)}>
+                  <Text style={styles.removeText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.taskTime}>{task.timeLabel}</Text>
+              <View style={styles.badgeRow}>
+                <Chip
+                  label={`Importance: ${task.importance}`}
+                  active={task.importance === "High"}
+                />
+                <Chip label={`Effort: ${task.difficulty}`} />
+              </View>
+            </Card>
+          ))}
+        </>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: color.night,
-  },
-  contentContainer: {
-    paddingHorizontal: 20,
-  },
+  screen: { flex: 1, backgroundColor: color.night },
+  contentContainer: { paddingHorizontal: 20 },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 18,
   },
   kicker: {
@@ -118,7 +142,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     fontSize: typography.sm,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   title: {
     color: color.text,
@@ -126,19 +150,9 @@ const styles = StyleSheet.create({
     fontSize: typography.xxl,
     marginTop: 4,
   },
-  heroCard: {
-    padding: 20,
-    marginBottom: 18,
-  },
-  moonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  moonMeta: {
-    flex: 1,
-    gap: 10,
-  },
+  heroCard: { padding: 20, marginBottom: 18 },
+  moonRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  moonMeta: { flex: 1, gap: 10 },
   moonLabel: {
     color: color.text,
     fontFamily: fontFamily.bodyBold,
@@ -154,21 +168,22 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.heading,
     fontSize: typography.lg,
     marginBottom: 12,
+    marginTop: 6,
   },
   weekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
   dayCell: {
     width: 42,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 8,
     borderRadius: 14,
     backgroundColor: color.den,
   },
   dayCellActive: {
-    backgroundColor: 'rgba(246,235,180,0.1)',
+    backgroundColor: "rgba(246,235,180,0.1)",
     borderWidth: 1,
     borderColor: color.moon,
   },
@@ -178,13 +193,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     fontSize: typography.xs,
   },
-  dayLabelActive: {
-    color: color.moon,
-    fontFamily: fontFamily.bodyBold,
-  },
-  planCard: {
-    padding: 18,
-  },
+  dayLabelActive: { color: color.moon, fontFamily: fontFamily.bodyBold },
+  planCard: { padding: 18, marginBottom: 12 },
   planTitle: {
     color: color.text,
     fontFamily: fontFamily.heading,
@@ -197,7 +207,29 @@ const styles = StyleSheet.create({
     fontSize: typography.md,
     marginBottom: 12,
   },
-  startButton: {
-    alignSelf: 'flex-start',
+  startButton: { alignSelf: "flex-start" },
+  customTaskCard: { padding: 16, marginBottom: 12 },
+  taskHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  taskTitle: {
+    color: color.text,
+    fontFamily: fontFamily.heading,
+    fontSize: typography.md,
+  },
+  taskTime: {
+    color: color.moon,
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: typography.xs,
+    marginBottom: 10,
+  },
+  badgeRow: { flexDirection: "row", gap: 8 },
+  removeText: {
+    color: color.mist,
+    fontSize: typography.md,
+    paddingHorizontal: 4,
   },
 });

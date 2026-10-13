@@ -17,21 +17,33 @@ export interface FocusSession {
   mood?: 1 | 2 | 3;
 }
 
+export interface CustomPlanBlock {
+  id: string;
+  label: string;
+  timeLabel: string;
+  duration: number;
+  kind: 'plan' | 'focus' | 'rest';
+  importance: 'High' | 'Medium' | 'Low';
+  difficulty: 'Easy' | 'Moderate' | 'Hard';
+}
+
 interface FocusStore {
   activeSession: FocusSession | null;
   recentSessions: FocusSession[];
   lastCompletedSession: FocusSession | null;
+  customBlocks: CustomPlanBlock[];
   startSession: (title: string, plannedMin: number) => FocusSession;
   pauseSession: () => void;
   resumeSession: () => boolean;
   endSession: (status: 'completed' | 'rested' | 'ended_early', focusedSecOverride?: number) => FocusSession | null;
   setMood: (mood: 1 | 2 | 3) => void;
+  addCustomBlock: (block: CustomPlanBlock) => void;
+  removeCustomBlock: (id: string) => void;
   clear: () => void;
 }
 
 export function getElapsedFocusMs(session: FocusSession, at = Date.now()) {
   if (!session) return 0;
-
   const activeWindow = session.leftAt ? 0 : Math.max(0, at - session.startedAt);
   return session.spentForegroundMs + activeWindow;
 }
@@ -42,6 +54,7 @@ export const useFocusStore = create<FocusStore>()(
       activeSession: null,
       recentSessions: [],
       lastCompletedSession: null,
+      customBlocks: [],
       startSession: (title, plannedMin) => {
         const now = Date.now();
         const session: FocusSession = {
@@ -144,7 +157,13 @@ export const useFocusStore = create<FocusStore>()(
           activeSession,
         });
       },
-      clear: () => set({ activeSession: null, recentSessions: [], lastCompletedSession: null }),
+      addCustomBlock: (block) => {
+        set({ customBlocks: [...get().customBlocks, block] });
+      },
+      removeCustomBlock: (id) => {
+        set({ customBlocks: get().customBlocks.filter((b) => b.id !== id) });
+      },
+      clear: () => set({ activeSession: null, recentSessions: [], lastCompletedSession: null, customBlocks: [] }),
     }),
     {
       name: storageKeys.focus,
