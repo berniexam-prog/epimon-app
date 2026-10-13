@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusStore } from '../../stores/focus';
 import { useOnboardingStore } from '../../stores/onboarding';
@@ -11,12 +12,21 @@ export default function FocusScreen() {
   const startSession = useFocusStore((state) => state.startSession);
   const { dailyGoalMinutes } = useOnboardingStore();
   
-  const targetMinutes = dailyGoalMinutes || 15;
+  const defaultMinutes = dailyGoalMinutes || 15;
+  const [selectedDuration, setSelectedDuration] = useState(defaultMinutes);
 
   const handleStart = () => {
-    startSession('Starter focus', targetMinutes);
+    startSession('Starter focus', selectedDuration);
     router.push('/focus/session');
   };
+
+  const handleDifferentBlock = () => {
+    const nextDuration = selectedDuration === 15 ? 30 : selectedDuration === 30 ? 60 : 15;
+    setSelectedDuration(nextDuration);
+    Alert.alert('Block Updated', `Switched target focus duration to ${nextDuration} minutes.`);
+  };
+
+  const progressValue = selectedDuration / 60;
 
   return (
     <ScrollView
@@ -28,16 +38,16 @@ export default function FocusScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.kicker}>Focus</Text>
-      <Text style={styles.title}>This block adds {targetMinutes} minutes</Text>
+      <Text style={styles.title}>This block adds {selectedDuration} minutes</Text>
 
       <Card style={styles.previewCard}>
         <View style={styles.previewRow}>
-          <ProgressRing size={180} progress={0.35}>
-            <Moon size={92} fill={0.35} />
+          <ProgressRing size={180} progress={progressValue}>
+            <Moon size={92} fill={progressValue} />
           </ProgressRing>
           <View style={styles.summary}>
             <Text style={styles.summaryTitle}>Starter focus</Text>
-            <Text style={styles.summaryMeta}>Today • 9:00</Text>
+            <Text style={styles.summaryMeta}>Today • 9:00 AM</Text>
             <Chip label="Strict mode" active />
           </View>
         </View>
@@ -45,11 +55,15 @@ export default function FocusScreen() {
 
       <View style={styles.actions}>
         <Button
-          label={`Start ${targetMinutes} min`}
+          label={`Start ${selectedDuration} min`}
           variant="moon"
           onPress={handleStart}
         />
-        <Button label="Use a different block" variant="secondary" />
+        <Button
+          label="Switch duration preset"
+          variant="secondary"
+          onPress={handleDifferentBlock}
+        />
       </View>
     </ScrollView>
   );
