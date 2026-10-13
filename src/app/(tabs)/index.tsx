@@ -1,21 +1,34 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useOnboardingStore } from '../../stores/onboarding';
+import { useFocusStore } from '../../stores/focus';
 import { color, fontFamily, typography } from '../../theme';
 import { Button, Card, Chip, Moon, ProgressBar } from '../../ui';
+
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { name, dailyGoalMinutes } = useOnboardingStore();
+  const startSession = useFocusStore((state) => state.startSession);
+
+  const [selectedDay, setSelectedDay] = useState(3); // Default to Thursday (index 3)
 
   const greeting = name ? `Good morning, ${name}` : 'Good morning';
   const targetMinutes = dailyGoalMinutes || 15;
-  const moonFill = 0.0; // Fresh new user state: 0% lit
+  const moonFill = 0.0; // Brand new user starting at 0%
   const minutesLeft = targetMinutes;
 
   const handleStartSession = () => {
+    startSession('Starter focus', targetMinutes);
     router.push('/focus/session');
+  };
+
+  const handleDayPress = (dayName: string, index: number) => {
+    setSelectedDay(index);
+    // Optional helper or logging for production
   };
 
   return (
@@ -32,7 +45,7 @@ export default function HomeScreen() {
           <Text style={styles.kicker}>Home</Text>
           <Text style={styles.title}>{greeting}</Text>
         </View>
-        <Chip label="Day 1" />
+        <Chip label="Day 1" active />
       </View>
 
       <Card style={styles.heroCard}>
@@ -52,15 +65,22 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>This week</Text>
       <View style={styles.weekRow}>
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-          <View
-            key={day}
-            style={[styles.dayCell, index === 0 && styles.dayCellActive]}
-          >
-            <Moon size={28} fill={index === 0 ? 0.1 : 0.05} />
-            <Text style={styles.dayLabel}>{day}</Text>
-          </View>
-        ))}
+        {WEEKDAYS.map((day, index) => {
+          const isSelected = selectedDay === index;
+          return (
+            <TouchableOpacity
+              key={day}
+              activeOpacity={0.8}
+              onPress={() => handleDayPress(day, index)}
+              style={[styles.dayCell, isSelected && styles.dayCellActive]}
+            >
+              <Moon size={28} fill={isSelected ? 0.3 : 0.05} />
+              <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>
+                {day}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.sectionTitle}>Next up</Text>
@@ -157,6 +177,10 @@ const styles = StyleSheet.create({
     color: color.mist,
     fontFamily: fontFamily.bodyMedium,
     fontSize: typography.xs,
+  },
+  dayLabelActive: {
+    color: color.moon,
+    fontFamily: fontFamily.bodyBold,
   },
   planCard: {
     padding: 18,
